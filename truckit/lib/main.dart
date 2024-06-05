@@ -22,6 +22,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// possibly look into creating separate widgets for truckit logo, login, and register
 class LoginWidget extends StatelessWidget {
   const LoginWidget({super.key});
 
