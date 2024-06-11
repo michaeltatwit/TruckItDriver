@@ -163,9 +163,10 @@ class DividerWithText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: const <Widget>[
+    return const Row(
+      children: <Widget>[
         Expanded(
+          // left divider
           child: Divider(
             color: Colors.white,
             thickness: 1,
@@ -178,6 +179,7 @@ class DividerWithText extends StatelessWidget {
           style: TextStyle(color: Colors.white, fontSize: 18.0),
         ),
         Expanded(
+          // right divider
           child: Divider(
             color: Colors.white,
             thickness: 1,

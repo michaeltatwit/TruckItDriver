@@ -1,20 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:truckit/ProfileCreationPage.dart';
+import 'MenuCreationPage.dart';
+import 'ProfileCreationPage.dart';
 
 class Homepage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: Text('Home Screen'),
+        title: Text('Driver Homepage'),
       ),
-      body: Container(
-        color: Colors.black,
-        child: Center(
-          child: Text(
-            'Welcome to the Home Screen!',
-            style: TextStyle(color: Colors.white), // Ensure text is visible on the black background
-          ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProfileCreationPage()),
+                );
+              },
+              child: Text('Create Profile'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => MenuCreationPage()),
+                );
+              },
+              child: Text('Create Menu'),
+            ),
+          ],
         ),
       ),
     );
