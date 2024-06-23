@@ -1,6 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'menu_server.dart';
 
 class MenuCreationPage extends StatefulWidget {
   @override
@@ -8,43 +7,82 @@ class MenuCreationPage extends StatefulWidget {
 }
 
 class _MenuCreationPageState extends State<MenuCreationPage> {
-  final List<MenuSection> _sections = [];
+  final MenuServer _menuServer = MenuServer();
+  final List<SectionWidget> _sections = [];
+
+  String companyId = '';
+  String truckId = '';
+  String menuId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+  }
+
+  void _initializeData() async {
+    companyId = await _menuServer.createCompany('Your Company');
+    truckId = await _menuServer.createTruck(companyId, 'Your Truck');
+    menuId = await _menuServer.createMenu(companyId, truckId, 'Your Menu');
+    _addSection();  // Start with one section
+  }
 
   void _addSection() {
     setState(() {
-      _sections.add(MenuSection());
+      _sections.add(SectionWidget(
+        companyId: companyId,
+        truckId: truckId,
+        menuId: menuId,
+        menuServer: _menuServer,
+      ));
     });
   }
 
-  void _saveMenu() {
-    // Save menu logic
-    
+  void _saveMenu() async {
+    for (var section in _sections) {
+      await section.saveSection();
+    }
+    // Show a confirmation dialog or navigate to another screen
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Menu Saved'),
+        content: Text('Your menu has been saved successfully.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop(); // Navigate back to the previous screen
+            },
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Create Menu')),
-      body: Padding(
+      appBar: AppBar(
+        title: Text('Create Menu'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.save),
+            onPressed: _saveMenu,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          children: [
+          children: <Widget>[
+            ..._sections,
+            SizedBox(height: 16.0),
             ElevatedButton(
               onPressed: _addSection,
               child: Text('Add Section'),
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _sections.length,
-                itemBuilder: (context, index) {
-                  return _sections[index];
-                },
-              ),
-            ),
-            ElevatedButton(
-              onPressed: _saveMenu,
-              child: Text('Save Menu'),
-            ),
           ],
         ),
       ),
@@ -52,82 +90,153 @@ class _MenuCreationPageState extends State<MenuCreationPage> {
   }
 }
 
-class MenuSection extends StatefulWidget {
+class SectionWidget extends StatefulWidget {
+  final String companyId;
+  final String truckId;
+  final String menuId;
+  final MenuServer menuServer;
+
+  SectionWidget({
+    required this.companyId,
+    required this.truckId,
+    required this.menuId,
+    required this.menuServer,
+  });
+
+  final _SectionWidgetState _sectionState = _SectionWidgetState();
+
+  Future<void> saveSection() => _sectionState.saveSection();
+
   @override
-  _MenuSectionState createState() => _MenuSectionState();
+  _SectionWidgetState createState() => _sectionState;
 }
 
-class _MenuSectionState extends State<MenuSection> {
+class _SectionWidgetState extends State<SectionWidget> {
   final TextEditingController _sectionNameController = TextEditingController();
-  final List<MenuItem> _items = [];
+  final List<MenuItemWidget> _menuItems = [];
+  String sectionId = '';
 
-  void _addItem() {
+  @override
+  void initState() {
+    super.initState();
+    _initializeSection();
+  }
+
+  void _initializeSection() async {
+    sectionId = await widget.menuServer.createSection(widget.companyId, widget.truckId, widget.menuId, 'New Section');
+  }
+
+  void _addMenuItem() {
     setState(() {
-      _items.add(MenuItem());
+      _menuItems.add(MenuItemWidget(
+        companyId: widget.companyId,
+        truckId: widget.truckId,
+        menuId: widget.menuId,
+        sectionId: sectionId,
+        menuServer: widget.menuServer,
+      ));
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _sectionNameController,
-              decoration: InputDecoration(labelText: 'Section Name'),
-            ),
-            ElevatedButton(
-              onPressed: _addItem,
-              child: Text('Add Item'),
-            ),
-            Column(
-              children: _items,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class MenuItem extends StatefulWidget {
-  @override
-  _MenuItemState createState() => _MenuItemState();
-}
-
-class _MenuItemState extends State<MenuItem> {
-  final TextEditingController _itemNameController = TextEditingController();
-  File? _image;
-
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().getImage(source: ImageSource.gallery);
-    setState(() {
-      if (pickedFile != null) {
-        _image = File(pickedFile.path);
-      }
-    });
+  Future<void> saveSection() async {
+    // Save the section name
+    await widget.menuServer.updateSectionName(widget.companyId, widget.truckId, widget.menuId, sectionId, _sectionNameController.text);
+    // Save all menu items in this section
+    for (var item in _menuItems) {
+      await item.saveMenuItem();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
+      children: <Widget>[
         TextField(
-          controller: _itemNameController,
+          controller: _sectionNameController,
+          decoration: InputDecoration(labelText: 'Section Name'),
+        ),
+        SizedBox(height: 16.0),
+        ..._menuItems,
+        ElevatedButton(
+          onPressed: _addMenuItem,
+          child: Text('Add Menu Item'),
+        ),
+      ],
+    );
+  }
+}
+
+class MenuItemWidget extends StatefulWidget {
+  final String companyId;
+  final String truckId;
+  final String menuId;
+  final String sectionId;
+  final MenuServer menuServer;
+
+  MenuItemWidget({
+    required this.companyId,
+    required this.truckId,
+    required this.menuId,
+    required this.sectionId,
+    required this.menuServer,
+  });
+
+  final _MenuItemWidgetState _itemState = _MenuItemWidgetState();
+
+  Future<void> saveMenuItem() => _itemState.saveMenuItem();
+
+  @override
+  _MenuItemWidgetState createState() => _itemState;
+}
+
+class _MenuItemWidgetState extends State<MenuItemWidget> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  String _imageUrl = '';
+
+  Future<void> saveMenuItem() async {
+    if (_nameController.text.isNotEmpty && _priceController.text.isNotEmpty) {
+      await widget.menuServer.addMenuItem(
+        widget.companyId,
+        widget.truckId,
+        widget.menuId,
+        widget.sectionId,
+        _nameController.text,
+        double.parse(_priceController.text),
+        _descriptionController.text,
+        _imageUrl,
+      );
+      _nameController.clear();
+      _priceController.clear();
+      _descriptionController.clear();
+      setState(() {
+        _imageUrl = '';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        TextField(
+          controller: _nameController,
           decoration: InputDecoration(labelText: 'Item Name'),
         ),
-        GestureDetector(
-          onTap: _pickImage,
-          child: _image != null
-              ? Image.file(_image!, height: 100)
-              : Container(
-                  height: 100,
-                  color: Colors.grey[300],
-                  child: Icon(Icons.add_a_photo),
-                ),
+        TextField(
+          controller: _priceController,
+          decoration: InputDecoration(labelText: 'Price'),
+          keyboardType: TextInputType.number,
+        ),
+        TextField(
+          controller: _descriptionController,
+          decoration: InputDecoration(labelText: 'Description'),
+        ),
+        SizedBox(height: 16.0),
+        ElevatedButton(
+          onPressed: saveMenuItem,
+          child: Text('Save Menu Item'),
         ),
       ],
     );

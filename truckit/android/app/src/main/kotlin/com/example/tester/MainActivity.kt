@@ -1,4 +1,4 @@
-package com.example.truckit
+package com.example.tester
 
 import io.flutter.embedding.android.FlutterActivity
 
