@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'Homepage.dart';
 
-void main() {
+
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
+
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -61,9 +74,21 @@ class LoginForm extends StatefulWidget {
 class _LoginFormState extends State<LoginForm> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Initialize FirebaseAuth
 
-  void _login() {
+  Future<void> _login() async {
     // Handle login logic here
+     try {
+      UserCredential userCredential = await _auth.signInAnonymously();
+      print('Signed in as ${userCredential.user?.uid}');
+      print('Username: ${_usernameController.text}, Password: ${_passwordController.text}');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => Homepage()),
+    );
+    } catch (e) {
+      print('Error signing in anonymously: $e');
+    }
     print('Username: ${_usernameController.text}, Password: ${_passwordController.text}');
     Navigator.push(
       context,
@@ -163,9 +188,10 @@ class DividerWithText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: const <Widget>[
+    return const Row(
+      children: <Widget>[
         Expanded(
+          // left divider
           child: Divider(
             color: Colors.white,
             thickness: 1,
@@ -178,6 +204,7 @@ class DividerWithText extends StatelessWidget {
           style: TextStyle(color: Colors.white, fontSize: 18.0),
         ),
         Expanded(
+          // right divider
           child: Divider(
             color: Colors.white,
             thickness: 1,
