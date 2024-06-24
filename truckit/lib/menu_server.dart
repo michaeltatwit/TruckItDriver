@@ -17,33 +17,65 @@ class MenuServer {
     return truckRef.id;
   }
 
-  Future<String> createMenu(String companyId, String truckId, String menuName) async {
-    DocumentReference menuRef = await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('menus').add({
-      'name': menuName,
-    });
-    return menuRef.id;
+  Future<void> createOrUpdateMenu(String companyId, String truckId, String menuName) async {
+    await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).set({
+      'menu': {'name': menuName}
+    }, SetOptions(merge: true));
   }
 
-  Future<String> createSection(String companyId, String truckId, String menuId, String sectionName) async {
-    DocumentReference sectionRef = await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('menus').doc(menuId).collection('sections').add({
+  Future<String> createSection(String companyId, String truckId, String sectionName) async {
+    DocumentReference sectionRef = await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').add({
       'name': sectionName,
     });
     return sectionRef.id;
   }
 
-  Future<void> updateSectionName(String companyId, String truckId, String menuId, String sectionId, String sectionName) async {
-    await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('menus').doc(menuId).collection('sections').doc(sectionId).update({
+  Future<void> updateSectionName(String companyId, String truckId, String sectionId, String sectionName) async {
+    await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').doc(sectionId).update({
       'name': sectionName,
     });
   }
 
-  Future<void> addMenuItem(String companyId, String truckId, String menuId, String sectionId, String itemName, double price, String description, String imageUrl) async {
-    await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('menus').doc(menuId).collection('sections').doc(sectionId).collection('items').add({
+  Future<void> addMenuItem(String companyId, String truckId, String sectionId, String itemName, double price, String description, String imageUrl) async {
+    await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').doc(sectionId).collection('items').add({
       'name': itemName,
       'price': price,
       'description': description,
       'imageUrl': imageUrl,
       'createdAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<void> updateMenuItem(String companyId, String truckId, String sectionId, String itemId, String itemName, double price, String description, String imageUrl) async {
+    await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').doc(sectionId).collection('items').doc(itemId).update({
+      'name': itemName,
+      'price': price,
+      'description': description,
+      'imageUrl': imageUrl,
+    });
+  }
+
+  Future<void> deleteMenuItem(String companyId, String truckId, String sectionId, String itemId) async {
+    await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').doc(sectionId).collection('items').doc(itemId).delete();
+  }
+
+  // New methods for profile creation, update, and retrieval
+  Future<void> createOrUpdateProfile(String companyId, String truckId, String description, String imageUrl) async {
+    await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('profile').doc('profile').set({
+      'description': description,
+      'imageUrl': imageUrl
+    });
+  }
+
+  Future<DocumentSnapshot> getProfile(String companyId, String truckId) async {
+    return await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('profile').doc('profile').get();
+  }
+
+  Future<QuerySnapshot> getSections(String companyId, String truckId) async {
+    return await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').get();
+  }
+
+  Future<QuerySnapshot> getMenuItems(String companyId, String truckId, String sectionId) async {
+    return await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').doc(sectionId).collection('items').get();
   }
 }
