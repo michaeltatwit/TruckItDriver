@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'menu_server.dart';
 
 class MenuCreationPage extends StatefulWidget {
+  final String companyId;
+  final String truckId;
+
+  MenuCreationPage({required this.companyId, required this.truckId});
+
   @override
   _MenuCreationPageState createState() => _MenuCreationPageState();
 }
@@ -10,31 +16,54 @@ class _MenuCreationPageState extends State<MenuCreationPage> {
   final MenuServer _menuServer = MenuServer();
   final List<SectionWidget> _sections = [];
 
-  String companyId = '';
-  String truckId = '';
-  String menuId = '';
-
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    _loadData();
   }
 
-  void _initializeData() async {
-    companyId = await _menuServer.createCompany('Your Company');
-    truckId = await _menuServer.createTruck(companyId, 'Your Truck');
-    menuId = await _menuServer.createMenu(companyId, truckId, 'Your Menu');
-    _addSection();  // Start with one section
+  Future<void> _loadData() async {
+    // Fetch existing sections and items from Firestore
+    var sectionsSnapshot = await _menuServer.getSections(widget.companyId, widget.truckId);
+    for (var sectionDoc in sectionsSnapshot.docs) {
+      var section = SectionWidget(
+        companyId: widget.companyId,
+        truckId: widget.truckId,
+        menuServer: _menuServer,
+        sectionId: sectionDoc.id,
+        initialName: sectionDoc['name'],
+        onDelete: () => _removeSection(int.parse(sectionDoc.id)),
+
+      );
+      setState(() {
+        _sections.add(section);
+      });
+      var itemsSnapshot = await _menuServer.getMenuItems(widget.companyId, widget.truckId, sectionDoc.id);
+      for (var itemDoc in itemsSnapshot.docs) {
+        section.addItem(
+          initialName: itemDoc['name'],
+          initialPrice: itemDoc['price'],
+          initialDescription: itemDoc['description'],
+          itemId: itemDoc.id,
+        );
+      }
+    }
   }
 
   void _addSection() {
     setState(() {
       _sections.add(SectionWidget(
-        companyId: companyId,
-        truckId: truckId,
-        menuId: menuId,
+        companyId: widget.companyId,
+        truckId: widget.truckId,
         menuServer: _menuServer,
+        onDelete: () => _removeSection(_sections.length - 1),
       ));
+    });
+  }
+
+  void _removeSection(int index) {
+    setState(() {
+      _sections.removeAt(index);
     });
   }
 
@@ -52,7 +81,6 @@ class _MenuCreationPageState extends State<MenuCreationPage> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              Navigator.of(context).pop(); // Navigate back to the previous screen
             },
             child: Text('OK'),
           ),
@@ -93,19 +121,37 @@ class _MenuCreationPageState extends State<MenuCreationPage> {
 class SectionWidget extends StatefulWidget {
   final String companyId;
   final String truckId;
-  final String menuId;
   final MenuServer menuServer;
+  final String? sectionId;
+  final String? initialName;
+  final VoidCallback onDelete;
 
   SectionWidget({
     required this.companyId,
     required this.truckId,
-    required this.menuId,
     required this.menuServer,
+    required this.onDelete,
+    this.sectionId,
+    this.initialName,
   });
 
   final _SectionWidgetState _sectionState = _SectionWidgetState();
 
   Future<void> saveSection() => _sectionState.saveSection();
+
+  void addItem({
+    String? initialName,
+    double? initialPrice,
+    String? initialDescription,
+    String? itemId,
+  }) {
+    _sectionState.addItem(
+      initialName: initialName,
+      initialPrice: initialPrice,
+      initialDescription: initialDescription,
+      itemId: itemId,
+    );
+  }
 
   @override
   _SectionWidgetState createState() => _sectionState;
@@ -119,28 +165,48 @@ class _SectionWidgetState extends State<SectionWidget> {
   @override
   void initState() {
     super.initState();
-    _initializeSection();
+    _sectionNameController.text = widget.initialName ?? '';
+    if (widget.sectionId != null) {
+      sectionId = widget.sectionId!;
+    } else {
+      _initializeSection();
+    }
   }
 
   void _initializeSection() async {
-    sectionId = await widget.menuServer.createSection(widget.companyId, widget.truckId, widget.menuId, 'New Section');
+    sectionId = await widget.menuServer.createSection(widget.companyId, widget.truckId, 'New Section');
   }
 
-  void _addMenuItem() {
+  void addItem({
+    String? initialName,
+    double? initialPrice,
+    String? initialDescription,
+    String? itemId,
+  }) {
     setState(() {
       _menuItems.add(MenuItemWidget(
         companyId: widget.companyId,
         truckId: widget.truckId,
-        menuId: widget.menuId,
         sectionId: sectionId,
         menuServer: widget.menuServer,
+        onDelete: () => _removeMenuItem(_menuItems.length - 1),
+        initialName: initialName,
+        initialPrice: initialPrice,
+        initialDescription: initialDescription,
+        itemId: itemId,
       ));
+    });
+  }
+
+  void _removeMenuItem(int index) {
+    setState(() {
+      _menuItems.removeAt(index);
     });
   }
 
   Future<void> saveSection() async {
     // Save the section name
-    await widget.menuServer.updateSectionName(widget.companyId, widget.truckId, widget.menuId, sectionId, _sectionNameController.text);
+    await widget.menuServer.updateSectionName(widget.companyId, widget.truckId, sectionId, _sectionNameController.text);
     // Save all menu items in this section
     for (var item in _menuItems) {
       await item.saveMenuItem();
@@ -149,19 +215,39 @@ class _SectionWidgetState extends State<SectionWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        TextField(
-          controller: _sectionNameController,
-          decoration: InputDecoration(labelText: 'Section Name'),
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _sectionNameController,
+                    decoration: InputDecoration(labelText: 'Section Name'),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: widget.onDelete,
+                ),
+              ],
+            ),
+            SizedBox(height: 8.0),
+            ..._menuItems,
+            SizedBox(height: 8.0),
+            Center(
+              child: ElevatedButton(
+                onPressed: addItem,
+                child: Text('Add Menu Item'),
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 16.0),
-        ..._menuItems,
-        ElevatedButton(
-          onPressed: _addMenuItem,
-          child: Text('Add Menu Item'),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -169,16 +255,24 @@ class _SectionWidgetState extends State<SectionWidget> {
 class MenuItemWidget extends StatefulWidget {
   final String companyId;
   final String truckId;
-  final String menuId;
   final String sectionId;
   final MenuServer menuServer;
+  final VoidCallback onDelete;
+  final String? initialName;
+  final double? initialPrice;
+  final String? initialDescription;
+  final String? itemId;
 
   MenuItemWidget({
     required this.companyId,
     required this.truckId,
-    required this.menuId,
     required this.sectionId,
     required this.menuServer,
+    required this.onDelete,
+    this.initialName,
+    this.initialPrice,
+    this.initialDescription,
+    this.itemId,
   });
 
   final _MenuItemWidgetState _itemState = _MenuItemWidgetState();
@@ -195,50 +289,76 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
   final TextEditingController _descriptionController = TextEditingController();
   String _imageUrl = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _nameController.text = widget.initialName ?? '';
+    _priceController.text = widget.initialPrice?.toString() ?? '';
+    _descriptionController.text = widget.initialDescription ?? '';
+  }
+
   Future<void> saveMenuItem() async {
     if (_nameController.text.isNotEmpty && _priceController.text.isNotEmpty) {
-      await widget.menuServer.addMenuItem(
-        widget.companyId,
-        widget.truckId,
-        widget.menuId,
-        widget.sectionId,
-        _nameController.text,
-        double.parse(_priceController.text),
-        _descriptionController.text,
-        _imageUrl,
-      );
-      _nameController.clear();
-      _priceController.clear();
-      _descriptionController.clear();
-      setState(() {
-        _imageUrl = '';
-      });
+      if (widget.itemId == null) {
+        await widget.menuServer.addMenuItem(
+          widget.companyId,
+          widget.truckId,
+          widget.sectionId,
+          _nameController.text,
+          double.parse(_priceController.text),
+          _descriptionController.text,
+          _imageUrl,
+        );
+      } else {
+        await widget.menuServer.updateMenuItem(
+          widget.companyId,
+          widget.truckId,
+          widget.sectionId,
+          widget.itemId!,
+          _nameController.text,
+          double.parse(_priceController.text),
+          _descriptionController.text,
+          _imageUrl,
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        TextField(
-          controller: _nameController,
-          decoration: InputDecoration(labelText: 'Item Name'),
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(labelText: 'Item Name'),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: widget.onDelete,
+                ),
+              ],
+            ),
+            TextField(
+              controller: _priceController,
+              decoration: InputDecoration(labelText: 'Price'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: _descriptionController,
+              decoration: InputDecoration(labelText: 'Description'),
+            ),
+          ],
         ),
-        TextField(
-          controller: _priceController,
-          decoration: InputDecoration(labelText: 'Price'),
-          keyboardType: TextInputType.number,
-        ),
-        TextField(
-          controller: _descriptionController,
-          decoration: InputDecoration(labelText: 'Description'),
-        ),
-        SizedBox(height: 16.0),
-        ElevatedButton(
-          onPressed: saveMenuItem,
-          child: Text('Save Menu Item'),
-        ),
-      ],
+      ),
     );
   }
 }
