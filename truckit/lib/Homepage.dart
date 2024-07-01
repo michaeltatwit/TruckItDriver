@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'TruckCreationPage.dart';
 import 'ProfileCreationPage.dart';
+import 'MapScreen.dart'; // Import the new DriverMapScreen
 import 'MenuCreationPage.dart';
 
 class Homepage extends StatefulWidget {
@@ -106,6 +107,19 @@ class TruckDetailPage extends StatelessWidget {
                 );
               },
               child: Text('Edit Menu'),
+            ),
+          ),
+          Center(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MapScreen(companyId: companyId, truckId: truckId),
+                  ),
+                );
+              },
+              child: Text('View Map / Go Live'),
             ),
           ),
         ],
