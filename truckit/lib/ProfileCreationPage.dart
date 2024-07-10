@@ -91,14 +91,20 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
               onTap: _pickImage,
               child: CircleAvatar(
                 radius: 50,
-                backgroundImage: _image != null ? FileImage(_image!) : _imageUrl.isNotEmpty ? NetworkImage(_imageUrl) : null,
+                backgroundImage: _image != null
+                    ? FileImage(_image!)
+                    : _imageUrl.isNotEmpty
+                        ? NetworkImage(_imageUrl)
+                        : null,
                 child: _image == null && _imageUrl.isEmpty ? Icon(Icons.add_a_photo) : null,
               ),
             ),
+            SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
               decoration: InputDecoration(labelText: 'Description'),
             ),
+            SizedBox(height: 16),
             ElevatedButton(
               onPressed: _saveProfile,
               child: Text('Save Profile'),

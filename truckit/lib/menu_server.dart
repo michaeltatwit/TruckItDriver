@@ -59,7 +59,7 @@ class MenuServer {
     await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').doc(sectionId).collection('items').doc(itemId).delete();
   }
 
-  // New methods for profile creation, update, and retrieval
+  // Profile-related methods
   Future<void> createOrUpdateProfile(String companyId, String truckId, String description, String imageUrl) async {
     await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('profile').doc('profile').set({
       'description': description,
