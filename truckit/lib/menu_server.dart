@@ -36,6 +36,32 @@ class MenuServer {
     });
   }
 
+  Future<void> deleteSection(String companyId, String truckId, String sectionId) async {
+    QuerySnapshot itemsSnapshot = await _firestore
+        .collection('companies')
+        .doc(companyId)
+        .collection('trucks')
+        .doc(truckId)
+        .collection('sections')
+        .doc(sectionId)
+        .collection('items')
+        .get();
+
+    for (DocumentSnapshot item in itemsSnapshot.docs) {
+      await item.reference.delete();
+    }
+
+    await _firestore
+        .collection('companies')
+        .doc(companyId)
+        .collection('trucks')
+        .doc(truckId)
+        .collection('sections')
+        .doc(sectionId)
+        .delete();
+  }
+
+
   Future<void> addMenuItem(String companyId, String truckId, String sectionId, String itemName, double price, String description, String imageUrl) async {
     await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').doc(sectionId).collection('items').add({
       'name': itemName,
@@ -58,6 +84,7 @@ class MenuServer {
   Future<void> deleteMenuItem(String companyId, String truckId, String sectionId, String itemId) async {
     await _firestore.collection('companies').doc(companyId).collection('trucks').doc(truckId).collection('sections').doc(sectionId).collection('items').doc(itemId).delete();
   }
+
 
   // Profile-related methods
   Future<void> createOrUpdateProfile(String companyId, String truckId, String description, String imageUrl) async {

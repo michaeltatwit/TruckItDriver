@@ -23,7 +23,6 @@ class _MenuCreationPageState extends State<MenuCreationPage> {
   }
 
   Future<void> _loadData() async {
-    // Fetch existing sections and items from Firestore
     var sectionsSnapshot = await _menuServer.getSections(widget.companyId, widget.truckId);
     for (var sectionDoc in sectionsSnapshot.docs) {
       var section = SectionWidget(
@@ -32,8 +31,7 @@ class _MenuCreationPageState extends State<MenuCreationPage> {
         menuServer: _menuServer,
         sectionId: sectionDoc.id,
         initialName: sectionDoc['name'],
-        onDelete: () => _removeSection(int.parse(sectionDoc.id)),
-
+        onDelete: () => _removeSection(sectionDoc.id),
       );
       setState(() {
         _sections.add(section);
@@ -50,28 +48,33 @@ class _MenuCreationPageState extends State<MenuCreationPage> {
     }
   }
 
-  void _addSection() {
+  void _addSection() async {
+    String newSectionId = await _menuServer.createSection(widget.companyId, widget.truckId, 'New Section');
     setState(() {
       _sections.add(SectionWidget(
         companyId: widget.companyId,
         truckId: widget.truckId,
         menuServer: _menuServer,
-        onDelete: () => _removeSection(_sections.length - 1),
+        sectionId: newSectionId,
+        // initialName: 'New Section',
+        onDelete: () => _removeSection(newSectionId),
       ));
     });
   }
 
-  void _removeSection(int index) {
+  void _removeSection(String sectionId) {
     setState(() {
-      _sections.removeAt(index);
+      _sections.removeWhere((section) => section.sectionId == sectionId);
     });
+    if (sectionId.isNotEmpty) {
+      _menuServer.deleteSection(widget.companyId, widget.truckId, sectionId);
+    }
   }
 
   void _saveMenu() async {
     for (var section in _sections) {
       await section.saveSection();
     }
-    // Show a confirmation dialog or navigate to another screen
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -93,25 +96,55 @@ class _MenuCreationPageState extends State<MenuCreationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create Menu'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.save),
-            onPressed: _saveMenu,
-          ),
-        ],
+        title: Text('Create Menu', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF1C1C1E),
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
       ),
+      backgroundColor: const Color(0xFF1C1C1E),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
             ..._sections,
             SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: _addSection,
-              child: Text('Add Section'),
-            ),
+            if (_sections.isEmpty)
+              Center(
+                child: ElevatedButton(
+                  onPressed: _addSection,
+                  child: Text('Add Section'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.blue,
+                  ),
+                ),
+              )
+            else
+              ElevatedButton(
+                onPressed: _addSection,
+                child: Text('Add Section'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.blue,
+                ),
+              ),
           ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(55.0),
+        child: ElevatedButton(
+          onPressed: _saveMenu,
+          child: Text('Save Menu', style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold, color: Colors.white)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1C1C1E), // Button color same as background
+            side: BorderSide(color: Colors.white, width: 1.0), // Thin white border
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30.0), // More rounded corners
+            ),
+          ),
         ),
       ),
     );
@@ -122,7 +155,7 @@ class SectionWidget extends StatefulWidget {
   final String companyId;
   final String truckId;
   final MenuServer menuServer;
-  final String? sectionId;
+  final String sectionId;
   final String? initialName;
   final VoidCallback onDelete;
 
@@ -130,8 +163,8 @@ class SectionWidget extends StatefulWidget {
     required this.companyId,
     required this.truckId,
     required this.menuServer,
+    required this.sectionId,
     required this.onDelete,
-    this.sectionId,
     this.initialName,
   });
 
@@ -160,21 +193,13 @@ class SectionWidget extends StatefulWidget {
 class _SectionWidgetState extends State<SectionWidget> {
   final TextEditingController _sectionNameController = TextEditingController();
   final List<MenuItemWidget> _menuItems = [];
-  String sectionId = '';
+  late String sectionId;
 
   @override
   void initState() {
     super.initState();
     _sectionNameController.text = widget.initialName ?? '';
-    if (widget.sectionId != null) {
-      sectionId = widget.sectionId!;
-    } else {
-      _initializeSection();
-    }
-  }
-
-  void _initializeSection() async {
-    sectionId = await widget.menuServer.createSection(widget.companyId, widget.truckId, 'New Section');
+    sectionId = widget.sectionId;
   }
 
   void addItem({
@@ -205,9 +230,7 @@ class _SectionWidgetState extends State<SectionWidget> {
   }
 
   Future<void> saveSection() async {
-    // Save the section name
     await widget.menuServer.updateSectionName(widget.companyId, widget.truckId, sectionId, _sectionNameController.text);
-    // Save all menu items in this section
     for (var item in _menuItems) {
       await item.saveMenuItem();
     }
@@ -217,6 +240,7 @@ class _SectionWidgetState extends State<SectionWidget> {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
+      color: Color(0xFF2C2C2E),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -227,11 +251,21 @@ class _SectionWidgetState extends State<SectionWidget> {
                 Expanded(
                   child: TextField(
                     controller: _sectionNameController,
-                    decoration: InputDecoration(labelText: 'Section Name'),
+                    decoration: const InputDecoration(
+                      labelText: 'Section Name',
+                      labelStyle: TextStyle(color: Colors.white),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                    ),
+                    style: TextStyle(color: Colors.white), // Set text color to white
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete),
+                  icon: Icon(Icons.delete, color: Colors.white),
                   onPressed: widget.onDelete,
                 ),
               ],
@@ -243,6 +277,10 @@ class _SectionWidgetState extends State<SectionWidget> {
               child: ElevatedButton(
                 onPressed: addItem,
                 child: Text('Add Menu Item'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.blue,
+                ),
               ),
             ),
           ],
@@ -328,6 +366,7 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
+      color: Color(0xFF2C2C2E),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -338,23 +377,53 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
                 Expanded(
                   child: TextField(
                     controller: _nameController,
-                    decoration: InputDecoration(labelText: 'Item Name'),
+                    decoration: const InputDecoration(
+                      labelText: 'Item Name',
+                      labelStyle: TextStyle(color: Colors.white),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                    ),
+                    style: TextStyle(color: Colors.white), // Set text color to white
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete),
+                  icon: Icon(Icons.delete, color: Colors.white),
                   onPressed: widget.onDelete,
                 ),
               ],
             ),
             TextField(
               controller: _priceController,
-              decoration: InputDecoration(labelText: 'Price'),
+              decoration: const InputDecoration(
+                labelText: 'Price',
+                labelStyle: TextStyle(color: Colors.white),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white),
+                ),
+              ),
               keyboardType: TextInputType.number,
+              style: TextStyle(color: Colors.white), // Set text color to white
             ),
             TextField(
               controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Description'),
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                labelStyle: TextStyle(color: Colors.white),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white),
+                ),
+              ),
+              style: TextStyle(color: Colors.white), // Set text color to white
             ),
           ],
         ),

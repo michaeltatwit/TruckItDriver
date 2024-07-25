@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'Homepage.dart';
-
-
+import 'RegistrationPage.dart'; // Import the SignUpPage
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +13,6 @@ Future<void> main() async {
   print('Firebase initialized');
   runApp(const MyApp());
 }
-
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -42,13 +37,16 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
+    return Scaffold(
+      backgroundColor: const Color(0xFF1C1C1E),
+      resizeToAvoidBottomInset: true, // Ensures the UI adjusts when the keyboard is shown
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
+            const SizedBox(height: 80), // Add some spacing at the top
+            const Text(
               'Login',
               style: TextStyle(
                 color: Colors.white,
@@ -57,8 +55,8 @@ class LoginPage extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 16.0),
-            LoginForm(),
+            const SizedBox(height: 16.0),
+            const LoginForm(),
           ],
         ),
       ),
@@ -74,28 +72,28 @@ class LoginForm extends StatefulWidget {
 }
 
 class _LoginFormState extends State<LoginForm> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance; // Initialize FirebaseAuth
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  String _errorMessage = '';
 
   Future<void> _login() async {
-    // Handle login logic here
-     try {
-      UserCredential userCredential = await _auth.signInAnonymously();
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
       print('Signed in as ${userCredential.user?.uid}');
-      print('Username: ${_usernameController.text}, Password: ${_passwordController.text}');
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => Homepage()),
-    );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => Homepage()),
+      );
     } catch (e) {
-      print('Error signing in anonymously: $e');
+      print('Error signing in: $e');
+      setState(() {
+        _errorMessage = 'Login failed. Please check your credentials.';
+      });
     }
-    print('Username: ${_usernameController.text}, Password: ${_passwordController.text}');
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => Homepage()),
-    );
   }
 
   @override
@@ -103,8 +101,8 @@ class _LoginFormState extends State<LoginForm> {
     return Column(
       children: <Widget>[
         TextFieldWidget(
-          controller: _usernameController,
-          hintText: 'Username',
+          controller: _emailController,
+          hintText: 'Email',
         ),
         const SizedBox(height: 16.0),
         TextFieldWidget(
@@ -126,12 +124,23 @@ class _LoginFormState extends State<LoginForm> {
             color: Colors.white,
           ),
         ),
+        if (_errorMessage.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              _errorMessage,
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
         const SizedBox(height: 50.0),
         const DividerWithText(),
         const SizedBox(height: 50.0),
         ElevatedButton(
           onPressed: () {
-            // Register button pressed
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => RegistrationPage()),
+            );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.deepPurple,
@@ -181,6 +190,7 @@ class TextFieldWidget extends StatelessWidget {
         ),
       ),
       style: const TextStyle(color: Colors.white),
+      keyboardAppearance: Brightness.dark, // Match keyboard appearance to dark mode
     );
   }
 }
