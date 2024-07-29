@@ -20,6 +20,7 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
   File? _image;
   String _imageUrl = '';
   bool _isProfileExists = false;
+  bool _isLoading = false;
   final MenuServer _menuServer = MenuServer();
 
   @override
@@ -29,60 +30,106 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
   }
 
   Future<void> _loadProfile() async {
-    DocumentSnapshot profile = await _menuServer.getProfile(widget.companyId, widget.truckId);
-    if (profile.exists) {
-      setState(() {
-        _isProfileExists = true;
-        _descriptionController.text = profile['description'];
-        _imageUrl = profile['imageUrl'];
-      });
+    try {
+      DocumentSnapshot profile = await _menuServer.getProfile(widget.companyId, widget.truckId);
+      if (profile.exists) {
+        setState(() {
+          _isProfileExists = true;
+          _descriptionController.text = profile['description'];
+          _imageUrl = profile['imageUrl'];
+        });
+      }
+    } catch (e) {
+      print("Error loading profile: $e");
     }
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    setState(() {
+    try {
+      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
-        _image = File(pickedFile.path);
+        setState(() {
+          _image = File(pickedFile.path);
+        });
       }
-    });
+    } catch (e) {
+      print("Error picking image: $e");
+    }
   }
 
   Future<String> _uploadImage(File image) async {
-    String fileName = '${widget.companyId}_${widget.truckId}.jpg';
-    Reference storageRef = FirebaseStorage.instance.ref().child('truck_profiles').child(fileName);
-    UploadTask uploadTask = storageRef.putFile(image);
-    TaskSnapshot snapshot = await uploadTask;
-    return await snapshot.ref.getDownloadURL();
+    try {
+      String fileName = '${widget.companyId}_${widget.truckId}.jpg';
+      Reference storageRef = FirebaseStorage.instance.ref().child('truck_profiles').child(fileName);
+      UploadTask uploadTask = storageRef.putFile(image);
+      TaskSnapshot snapshot = await uploadTask;
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      print("Error uploading image: $e");
+      rethrow;
+    }
   }
 
   Future<void> _saveProfile() async {
+    if (_isLoading) return; // Prevent multiple submissions
+    setState(() {
+      _isLoading = true;
+    });
+
     String imageUrl = _imageUrl;
 
     if (_image != null) {
-      imageUrl = await _uploadImage(_image!);
+      try {
+        imageUrl = await _uploadImage(_image!);
+      } catch (e) {
+        print("Error uploading image: $e");
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
     }
 
-    await _menuServer.createOrUpdateProfile(
-      widget.companyId,
-      widget.truckId,
-      _descriptionController.text,
-      imageUrl,
-    );
+    try {
+      await _menuServer.createOrUpdateProfile(
+        widget.companyId,
+        widget.truckId,
+        _descriptionController.text,
+        imageUrl,
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Profile Saved')),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profile Saved')),
+      );
 
-    setState(() {
-      _imageUrl = imageUrl;
-    });
+      setState(() {
+        _imageUrl = imageUrl;
+        _isLoading = false;
+      });
+
+      Navigator.pop(context, _imageUrl); // Return the new imageUrl to the Homepage
+    } catch (e) {
+      print("Error saving profile: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isProfileExists ? 'Edit Profile' : 'Create Profile')),
+      appBar: AppBar(
+        title: Text(
+          _isProfileExists ? 'Edit Profile' : 'Create Profile',
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF1C1C1E),
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
+      ),
+      backgroundColor: const Color(0xFF1C1C1E),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -102,12 +149,26 @@ class _ProfileCreationPageState extends State<ProfileCreationPage> {
             SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Description'),
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                labelStyle: TextStyle(color: Colors.white),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white),
+                ),
+              ),
+              style: TextStyle(color: Colors.white), // Set user input text color to white
             ),
             SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _saveProfile,
-              child: Text('Save Profile'),
+              onPressed: _isLoading ? null : _saveProfile,
+              child: _isLoading ? CircularProgressIndicator() : Text('Save Profile'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white, // Button color
+                foregroundColor: Colors.blue, // Text color
+              ),
             ),
           ],
         ),
