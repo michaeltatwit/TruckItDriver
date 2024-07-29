@@ -17,47 +17,51 @@ class _RegistrationPage extends State<RegistrationPage> {
   String _errorMessage = '';
 
   Future<void> _register() async {
-    try {
-      // Check if company ID already exists
-      DocumentSnapshot companyDoc = await _firestore.collection('companies').doc(_companyIdController.text).get();
-      if (companyDoc.exists) {
-        setState(() {
-          _errorMessage = 'Company ID already exists. Please choose a different one.';
-        });
-        return;
-      }
-
-      // Create user
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      User? user = userCredential.user;
-
-      if (user != null) {
-        // Create a new document in the users collection with the company ID
-        await _firestore.collection('users').doc(user.uid).set({
-          'email': user.email,
-          'companyId': _companyIdController.text,
-        });
-
-        // Create a new document in the companies collection
-        await _firestore.collection('companies').doc(_companyIdController.text).set({
-          'name': _companyIdController.text, // You can replace this with a more meaningful name
-        });
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => Homepage()),
-        );
-      }
-    } catch (e) {
-      print('Error registering: $e');
+  try {
+    // Check if company ID already exists
+    QuerySnapshot companySnapshot = await _firestore
+        .collection('companies')
+        .where('name', isEqualTo: _companyIdController.text)
+        .get();
+    if (companySnapshot.docs.isNotEmpty) {
       setState(() {
-        _errorMessage = 'Registration failed. Please try again.';
+        _errorMessage = 'Company ID already exists. Please choose a different one.';
       });
+      return;
     }
+
+    // Create user
+    UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+    User? user = userCredential.user;
+
+    if (user != null) {
+      // Create a new document in the companies collection with an auto-generated ID
+      DocumentReference newCompanyRef = await _firestore.collection('companies').add({
+        'name': _companyIdController.text, // You can replace this with a more meaningful name
+      });
+      String newCompanyId = newCompanyRef.id; // This is the auto-generated ID for the new document
+
+      // Create a new document in the users collection with the company ID
+      await _firestore.collection('users').doc(user.uid).set({
+        'email': user.email,
+        'companyId': newCompanyId, // Use the auto-generated ID
+      });
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => Homepage()),
+      );
+    }
+  } catch (e) {
+    print('Error registering: $e');
+    setState(() {
+      _errorMessage = 'Registration failed. Please try again.';
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
