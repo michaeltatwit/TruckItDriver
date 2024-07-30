@@ -35,12 +35,34 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> _logout() async {
-    await _auth.signOut();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => MyApp()),
-      (Route<dynamic> route) => false,
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Logout'),
+          content: Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('Logout'),
+            ),
+          ],
+        );
+      },
     );
+
+    if (result == true) {
+      await _auth.signOut();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => MyApp()),
+        (Route<dynamic> route) => false,
+      );
+    }
   }
 
   Future<void> _navigateToProfileCreationPage(String truckId) async {
@@ -64,7 +86,7 @@ class _HomepageState extends State<Homepage> {
   void _showBottomSheet(BuildContext context, String truckId) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1C1C1E),
+      backgroundColor: Colors.black,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
       ),
@@ -162,6 +184,7 @@ class _HomepageState extends State<Homepage> {
                                 var imageUrl = profileData?['imageUrl'] ?? '';
                                 var description = profileData?['description'] ?? 'No description';
 
+                                // truck widgets
                                 return Card(
                                   margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                                   color: Color(0xFF2C2C2E),
@@ -169,36 +192,51 @@ class _HomepageState extends State<Homepage> {
                                     borderRadius: BorderRadius.circular(15.0),
                                   ),
                                   child: ListTile(
-                                    contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-                                    leading: Container(
-                                      width: 60, // Ensure a fixed width to prevent overflow
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        mainAxisAlignment: MainAxisAlignment.center, // Center items vertically
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () => _showBottomSheet(context, truck.id),
-                                            child: CircleAvatar(
-                                              backgroundImage: imageUrl.isNotEmpty
-                                                  ? NetworkImage(imageUrl)
-                                                  : null,
-                                              radius: 20.0,
-                                              child: imageUrl.isEmpty
-                                                  ? Icon(Icons.account_circle, size: 40.0, color: Colors.white)
-                                                  : null,
+                                    contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0), // Adjust padding
+                                    leading: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () => _showBottomSheet(context, truck.id),
+                                          child: CircleAvatar(
+                                            backgroundImage: imageUrl.isNotEmpty
+                                                ? NetworkImage(imageUrl)
+                                                : null,
+                                            radius: 20.0,
+                                            child: imageUrl.isEmpty
+                                                ? const Icon(Icons.account_circle, size: 40.0, color: Colors.white)
+                                                : null,
+                                          ),
+                                        ),
+                                        SizedBox(height: 1), // Add spacing between image and edit text
+                                        GestureDetector(
+                                          onTap: () => _showBottomSheet(context, truck.id),
+                                          child: const Text(
+                                            'Edit',
+                                            style: TextStyle(
+                                              color: Colors.blue,
+                                              fontSize: 10.0, // Make the text smaller
                                             ),
                                           ),
-                                          SizedBox(height: 1), // Add spacing between image and edit text
-                                          GestureDetector(
-                                            onTap: () => _showBottomSheet(context, truck.id),
-                                            child: const Text(
-                                              'Edit',
-                                              style: TextStyle(
-                                                color: Colors.blue,
-                                                fontSize: 10.0, // Make the text smaller
-                                                overflow: TextOverflow.ellipsis, // Ensure text does not overflow
-                                              ),
-                                            ),
+                                        ),
+                                      ],
+                                    ),
+                                    title: Text(
+                                      truck['name'],
+                                      style: const TextStyle(color: Colors.white),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => MapScreen(
+                                            companyId: companyId!,
+                                            truckId: truck.id,
+                                            truckName: truck['name'],
                                           ),
                                         ],
                                       ),

@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+// interactions with Firebase 
 class MenuServer {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 

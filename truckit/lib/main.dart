@@ -37,16 +37,16 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1C1C1E),
+    return const Scaffold(
+      backgroundColor: Color(0xFF1C1C1E),
       resizeToAvoidBottomInset: true, // Ensures the UI adjusts when the keyboard is shown
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const SizedBox(height: 80), // Add some spacing at the top
-            const Text(
+            SizedBox(height: 80), // Add some spacing at the top
+            Text(
               'Login',
               style: TextStyle(
                 color: Colors.white,
@@ -55,8 +55,8 @@ class LoginPage extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16.0),
-            const LoginForm(),
+            SizedBox(height: 16.0),
+            LoginForm(),
           ],
         ),
       ),
@@ -77,6 +77,8 @@ class _LoginFormState extends State<LoginForm> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String _errorMessage = '';
 
+  // Login with user authenication in Firebase
+  // only email and anonymous sign in allowed
   Future<void> _login() async {
     try {
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
@@ -98,6 +100,8 @@ class _LoginFormState extends State<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+    // Sign in page
+    // Includes option to register
     return Column(
       children: <Widget>[
         TextFieldWidget(
@@ -163,6 +167,7 @@ class _LoginFormState extends State<LoginForm> {
   }
 }
 
+// Text field attributes
 class TextFieldWidget extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
@@ -190,7 +195,7 @@ class TextFieldWidget extends StatelessWidget {
         ),
       ),
       style: const TextStyle(color: Colors.white),
-      keyboardAppearance: Brightness.dark, // Match keyboard appearance to dark mode
+      keyboardAppearance: Brightness.dark, 
     );
   }
 }
