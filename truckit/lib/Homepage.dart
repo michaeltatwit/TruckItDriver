@@ -210,7 +210,7 @@ class _HomepageState extends State<Homepage> {
                                                 : null,
                                           ),
                                         ),
-                                        SizedBox(height: 2), // Add spacing between image and edit text
+                                        SizedBox(height: 1), // Add spacing between image and edit text
                                         GestureDetector(
                                           onTap: () => _showBottomSheet(context, truck.id),
                                           child: const Text(
