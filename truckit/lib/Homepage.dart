@@ -163,67 +163,77 @@ class _HomepageState extends State<Homepage> {
                                 var description = profileData?['description'] ?? 'No description';
 
                                 return Card(
-                                  margin: const EdgeInsets.symmetric(
-                                      vertical: 8.0, horizontal: 16.0),
+                                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                                   color: Color(0xFF2C2C2E),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(15.0),
                                   ),
                                   child: ListTile(
-                                    contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0), // Adjust padding
-                                    leading: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () => _showBottomSheet(context, truck.id),
-                                          child: CircleAvatar(
-                                            backgroundImage: imageUrl.isNotEmpty
-                                                ? NetworkImage(imageUrl)
-                                                : null,
-                                            radius: 20.0,
-                                            child: imageUrl.isEmpty
-                                                ? Icon(Icons.account_circle, size: 40.0, color: Colors.white)
-                                                : null,
-                                          ),
-                                        ),
-                                        SizedBox(height: 2), // Add spacing between image and edit text
-                                        GestureDetector(
-                                          onTap: () => _showBottomSheet(context, truck.id),
-                                          child: const Text(
-                                            'Edit',
-                                            style: TextStyle(
-                                              color: Colors.blue,
-                                              fontSize: 10.0, // Make the text smaller
+                                    contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                                    leading: Container(
+                                      width: 60, // Ensure a fixed width to prevent overflow
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.center, // Center items vertically
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () => _showBottomSheet(context, truck.id),
+                                            child: CircleAvatar(
+                                              backgroundImage: imageUrl.isNotEmpty
+                                                  ? NetworkImage(imageUrl)
+                                                  : null,
+                                              radius: 20.0,
+                                              child: imageUrl.isEmpty
+                                                  ? Icon(Icons.account_circle, size: 40.0, color: Colors.white)
+                                                  : null,
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                    title: Text(
-                                      truck['name'],
-                                      style: TextStyle(color: Colors.white),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    trailing: IconButton(
-                                      icon: Icon(Icons.arrow_drop_down, color: Colors.white),
-                                      onPressed: () => _showBottomSheet(context, truck.id),
-                                    ),
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => MapScreen(
-                                            companyId: companyId!,
-                                            truckId: truck.id,
-                                            truckName: truck['name'],
+                                          SizedBox(height: 1), // Add spacing between image and edit text
+                                          GestureDetector(
+                                            onTap: () => _showBottomSheet(context, truck.id),
+                                            child: const Text(
+                                              'Edit',
+                                              style: TextStyle(
+                                                color: Colors.blue,
+                                                fontSize: 10.0, // Make the text smaller
+                                                overflow: TextOverflow.ellipsis, // Ensure text does not overflow
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                );
+                                        ],
+                                      ),
+                                    ),
+    title: Text(
+      truck['name'],
+      style: TextStyle(color: Colors.white),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+    trailing: IconButton(
+      icon: Icon(Icons.arrow_drop_down, color: Colors.white),
+      onPressed: () => _showBottomSheet(context, truck.id),
+    ),
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapScreen(
+            companyId: companyId!,
+            truckId: truck.id,
+            truckName: truck['name'],
+          ),
+        ),
+      );
+    },
+  ),
+);
+
+
+
+
+
+
+
                               },
                             );
                           },
