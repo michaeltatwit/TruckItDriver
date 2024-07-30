@@ -217,6 +217,7 @@ class _HomepageState extends State<Homepage> {
                                           builder: (context) => MapScreen(
                                             companyId: companyId!,
                                             truckId: truck.id,
+                                            truckName: truck['name'],
                                           ),
                                         ),
                                       );
