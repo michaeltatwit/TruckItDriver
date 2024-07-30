@@ -35,12 +35,34 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> _logout() async {
-    await _auth.signOut();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => MyApp()),
-      (Route<dynamic> route) => false,
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Logout'),
+          content: Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('Logout'),
+            ),
+          ],
+        );
+      },
     );
+
+    if (result == true) {
+      await _auth.signOut();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => MyApp()),
+        (Route<dynamic> route) => false,
+      );
+    }
   }
 
   Future<void> _navigateToProfileCreationPage(String truckId) async {
@@ -64,7 +86,7 @@ class _HomepageState extends State<Homepage> {
   void _showBottomSheet(BuildContext context, String truckId) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1C1C1E),
+      backgroundColor: Colors.black,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
       ),
@@ -162,6 +184,7 @@ class _HomepageState extends State<Homepage> {
                                 var imageUrl = profileData?['imageUrl'] ?? '';
                                 var description = profileData?['description'] ?? 'No description';
 
+                                // truck widgets
                                 return Card(
                                   margin: const EdgeInsets.symmetric(
                                       vertical: 8.0, horizontal: 16.0),
@@ -183,7 +206,7 @@ class _HomepageState extends State<Homepage> {
                                                 : null,
                                             radius: 20.0,
                                             child: imageUrl.isEmpty
-                                                ? Icon(Icons.account_circle, size: 40.0, color: Colors.white)
+                                                ? const Icon(Icons.account_circle, size: 40.0, color: Colors.white)
                                                 : null,
                                           ),
                                         ),
@@ -202,14 +225,11 @@ class _HomepageState extends State<Homepage> {
                                     ),
                                     title: Text(
                                       truck['name'],
-                                      style: TextStyle(color: Colors.white),
+                                      style: const TextStyle(color: Colors.white),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    trailing: IconButton(
-                                      icon: Icon(Icons.arrow_drop_down, color: Colors.white),
-                                      onPressed: () => _showBottomSheet(context, truck.id),
-                                    ),
+                                    trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white),
                                     onTap: () {
                                       Navigator.push(
                                         context,
