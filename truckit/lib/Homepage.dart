@@ -86,7 +86,7 @@ class _HomepageState extends State<Homepage> {
   void _showBottomSheet(BuildContext context, String truckId) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1C1C1E),
+      backgroundColor: Colors.black,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
       ),
