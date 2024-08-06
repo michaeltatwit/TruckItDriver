@@ -331,12 +331,17 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
   void initState() {
     super.initState();
     _nameController.text = widget.initialName ?? '';
-    _priceController.text = widget.initialPrice?.toString() ?? '';
+    _priceController.text = widget.initialPrice?.toStringAsFixed(2) ?? '';
     _descriptionController.text = widget.initialDescription ?? '';
   }
 
   Future<void> saveMenuItem() async {
     if (_nameController.text.isNotEmpty && _priceController.text.isNotEmpty) {
+      if (!_priceController.text.contains('.')) {
+        _priceController.text = '${_priceController.text}.00';
+      } else if (_priceController.text.split('.')[1].length == 1) {
+        _priceController.text = '${_priceController.text}0';
+      }
       if (widget.itemId == null) {
         await widget.menuServer.addMenuItem(
           widget.companyId,
@@ -408,7 +413,7 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
                   borderSide: BorderSide(color: Colors.white),
                 ),
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.text,
               style: TextStyle(color: Colors.white), // Set text color to white
             ),
             TextField(
